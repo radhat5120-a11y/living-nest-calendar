@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ปฏิทินคอนโดลิฟวิ่งเนสท์ | Living Nest Condo Calendar</title>
+    <meta name="description" content="ปฏิทินกิจกรรม ประกาศ และกำหนดการของคอนโดลิฟวิ่งเนสท์">
+    <meta name="theme-color" content="#2D1B4E">
+    
+    <!-- PWA Web App Manifest Placeholder -->
+    <link rel="manifest" id="manifest-placeholder">
+
+    <!-- Google Fonts: Noto Sans Thai -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            purple: '#2D1B4E',
+                            'purple-dark': '#1E1233',
+                            'purple-light': '#422870',
+                            gold: '#D4AF37',
+                            'gold-light': '#FDF0CD',
+                            'gold-dark': '#B58F22',
+                            accent: '#FFC107',
+                            bg: '#F4F6F9'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans Thai"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 16px;
+            color: #1F2937;
+            background-color: #F4F6F9;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .day-cell {
+            transition: all 0.2s ease;
+            min-height: 85px;
+        }
+        @media (max-width: 640px) {
+            .day-cell {
+                min-height: 64px;
+            }
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.45);
+        }
+
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen antialiased selection:bg-brand-gold selection:text-brand-purple">
+
+    <!-- OFFLINE / CACHE BANNER -->
+    <div id="offlineBanner" class="hidden bg-amber-500 text-slate-950 px-4 py-2 text-center text-sm font-bold flex items-center justify-center gap-2 shadow-md">
+        <i class="fa-solid fa-wifi text-base"></i>
+        <span>กำลังแสดงข้อมูลล่าสุดที่บันทึกไว้ (โหมดออฟไลน์หรือยังไม่ได้เชื่อมต่อ Google Sheets)</span>
+        <button onclick="app.refreshData()" class="ml-2 underline text-xs bg-slate-900/20 px-2 py-1 rounded hover:bg-slate-900/40 transition">ลองใหม่</button>
+    </div>
+
+    <!-- MAIN HEADER -->
+    <header class="bg-gradient-to-r from-brand-purple-dark via-brand-purple to-brand-purple-light text-white border-b-4 border-brand-gold shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-brand-gold via-amber-300 to-brand-gold-dark rounded-2xl flex items-center justify-center text-brand-purple-dark text-2xl font-black shadow-md border-2 border-amber-200 flex-shrink-0">
+                        <i class="fa-solid fa-building-user"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white">ปฏิทินคอนโดลิฟวิ่งเนสท์</h1>
+                            <span class="bg-brand-gold/20 text-brand-gold text-xs px-2.5 py-0.5 rounded-full border border-brand-gold/40 font-semibold hidden sm:inline-block">Living Nest</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-200 font-normal">ปฏิทินกิจกรรม ประกาศ และกำหนดการของคอนโดลิฟวิ่งเนสท์</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between md:justify-end gap-2 border-t border-purple-800/60 md:border-none pt-3 md:pt-0">
+                    <div class="text-xs text-slate-300 flex items-center gap-1.5 bg-brand-purple-dark/60 px-3 py-1.5 rounded-xl border border-purple-800">
+                        <i class="fa-solid fa-clock-rotate-left text-brand-gold"></i>
+                        <span id="lastUpdatedText">อัปเดตล่าสุด: กำลังโหลด...</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="app.refreshData()" title="อัปเดตข้อมูลใหม่" class="bg-brand-gold hover:bg-amber-400 text-brand-purple-dark font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition shadow hover:shadow-md active:scale-95 text-xs sm:text-sm">
+                            <i id="refreshSpinner" class="fa-solid fa-rotate"></i>
+                            <span class="hidden sm:inline">อัปเดตข้อมูล</span>
+                        </button>
+
+                        <button onclick="app.openConfigModal()" title="ตั้งค่าระบบ/Google Sheets" class="bg-white/10 hover:bg-white/20 text-white p-2 sm:px-3 sm:py-1.5 rounded-xl border border-white/20 flex items-center gap-1.5 transition text-xs sm:text-sm">
+                            <i class="fa-solid fa-sliders text-brand-gold"></i>
+                            <span class="hidden sm:inline">ตั้งค่าฐานข้อมูล</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- 1. SUMMARY DASHBOARD CARDS -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" aria-label="สรุปข้อมูลภาพรวม">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-purple-100 text-brand-purple flex items-center justify-center text-xl font-extrabold flex-shrink-0">
+                    <i class="fa-regular fa-calendar-check"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">วันนี้</p>
+                    <p id="dashTodayDate" class="text-sm sm:text-base font-extrabold text-slate-900 truncate">--/--/----</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl font-extrabold flex-shrink-0">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">กิจกรรมวันนี้</p>
+                    <p id="dashTodayCount" class="text-lg sm:text-xl font-black text-brand-purple">0 รายการ</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center text-xl font-extrabold flex-shrink-0">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">กิจกรรมเดือนนี้</p>
+                    <p id="dashMonthEventCount" class="text-lg sm:text-xl font-black text-blue-900">0 รายการ</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center text-xl font-extrabold flex-shrink-0">
+                    <i class="fa-solid fa-umbrella-beach"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">วันหยุดเดือนนี้</p>
+                    <p id="dashMonthHolidayCount" class="text-lg sm:text-xl font-black text-rose-700">0 วัน</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. TODAY PANEL -->
+        <section id="todayPanel" class="bg-gradient-to-r from-amber-500/10 via-purple-900/5 to-amber-500/10 border-2 border-brand-gold/60 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-gold opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-gold"></span>
+                    </span>
+                    <h2 class="text-base sm:text-lg font-extrabold text-brand-purple-dark flex items-center gap-2">
+                        <span>วันนี้มีอะไรบ้าง?</span>
+                        <span id="todayPanelDateLabel" class="text-xs sm:text-sm font-normal text-slate-600"></span>
+                    </h2>
+                </div>
+                <button onclick="app.showTodayEventsModal()" class="text-xs font-bold text-brand-purple hover:underline flex items-center gap-1">
+                    ดูทั้งหมด <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
+            
+            <div id="todayPanelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            </div>
+        </section>
+
+        <!-- 3. MAIN WORKSPACE: CALENDAR & EVENT CARDS -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- LEFT COLUMN: CALENDAR COMPONENT -->
+            <section class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 sticky top-24">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="calendarMonthYear" class="text-lg sm:text-xl font-extrabold text-brand-purple-dark flex items-center gap-2">
+                    </h2>
+
+                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                        <button onclick="app.changeMonth(-1)" title="เดือนก่อนหน้า" class="w-8 h-8 rounded-lg hover:bg-white hover:shadow-sm text-slate-700 flex items-center justify-center transition">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button onclick="app.goToToday()" title="กลับมาวันนี้" class="px-2.5 py-1 text-xs font-extrabold text-brand-purple hover:bg-white hover:shadow-sm rounded-lg transition">
+                            วันนี้
+                        </button>
+                        <button onclick="app.changeMonth(1)" title="เดือนถัดไป" class="w-8 h-8 rounded-lg hover:bg-white hover:shadow-sm text-slate-700 flex items-center justify-center transition">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-7 text-center font-bold text-xs text-slate-500 mb-2 py-2 border-b border-slate-100">
+                    <div class="text-rose-600">อา</div>
+                    <div>จ</div>
+                    <div>อ</div>
+                    <div>พ</div>
+                    <div>พฤ</div>
+                    <div>ศ</div>
+                    <div class="text-rose-600">ส</div>
+                </div>
+
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-brand-purple ring-2 ring-brand-gold"></span>
+                        <span class="font-medium">วันนี้</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <span class="font-medium">วันหยุด</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span class="font-medium">มีกิจกรรม</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: SEARCH, FILTERS & EVENT CARDS -->
+            <section class="lg:col-span-7 space-y-4">
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="searchInput" oninput="app.handleSearch(this.value)" placeholder="ค้นหากิจกรรม, สถานที่, หมวดหมู่, รายละเอียด..." class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-purple focus:bg-white text-sm transition">
+                        <button id="clearSearchBtn" onclick="app.clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-xs" id="categoryChips">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-list text-brand-purple"></i>
+                        <span>รายการกิจกรรมและกำหนดการ</span>
+                        <span id="eventCountBadge" class="bg-purple-100 text-brand-purple text-xs font-black px-2.5 py-0.5 rounded-full">0</span>
+                    </h3>
+                    <div class="text-xs text-slate-500 font-medium">
+                        เรียงตาม: วันที่และเวลา
+                    </div>
+                </div>
+
+                <div id="eventListContainer" class="space-y-3">
+                </div>
+            </section>
+
+        </div>
+
+        <!-- 4. ANNOUNCEMENTS SECTION -->
+        <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-black">
+                        <i class="fa-solid fa-bullhorn text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-900">ประกาศสำคัญจากนิติบุคคล</h2>
+                        <p class="text-xs text-slate-500">ข่าวสาร ระเบียบคอนโด และแจ้งเตือนลูกบ้าน</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="announcementsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>
+        </section>
+
+        <!-- 5. USEFUL LINKS & CONTACTS SECTION -->
+        <section class="bg-gradient-to-br from-brand-purple-dark to-brand-purple text-white rounded-2xl p-6 shadow-md space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-brand-gold text-brand-purple-dark flex items-center justify-center text-xl font-extrabold">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-extrabold text-white">ลิงก์สำคัญ & ช่องทางติดต่อ</h2>
+                    <p class="text-xs text-slate-300">บริการ แบบฟอร์มแจ้งซ่อม เอกสารนิติบุคคล และ LINE OA</p>
+                </div>
+            </div>
+
+            <div id="linksContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-brand-purple-dark text-slate-300 border-t border-purple-900/50 mt-12 py-8 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="font-extrabold text-white text-base">ปฏิทินคอนโดลิฟวิ่งเนสท์</p>
+                <p class="text-xs text-slate-400 mt-1">Living Nest Condo Calendar — ระบบปฏิทินกลางสำหรับเจ้าของร่วมและผู้พักอาศัย</p>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+                <p>© Living Nest Condo Management System. All rights reserved.</p>
+                <p>ใช้งานฟรี ไม่มีค่าบริการรายเดือน (Static Web + Google Sheets)</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODALS -->
+    <!-- 1. DATE DETAILS MODAL -->
+    <div id="dateModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform transition-all">
+            <div class="bg-gradient-to-r from-brand-purple-dark to-brand-purple text-white p-5 flex items-center justify-between border-b-2 border-brand-gold">
+                <div>
+                    <span class="text-xs text-brand-gold uppercase tracking-wider font-semibold">รายละเอียดกิจกรรม</span>
+                    <h3 id="modalDateTitle" class="text-xl font-extrabold text-white">--/--/----</h3>
+                </div>
+                <button onclick="app.closeModal('dateModal')" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="modalDateEventList" class="p-5 overflow-y-auto space-y-3 flex-grow">
+            </div>
+
+            <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-100 text-right">
+                <button onclick="app.closeModal('dateModal')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ADMIN CONFIGURATION MODAL -->
+    <div id="configModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-brand-purple-dark text-white p-5 flex items-center justify-between border-b-2 border-brand-gold">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-brand-gold text-lg"></i>
+                    <h3 class="text-lg font-bold">ตั้งค่าเชื่อมต่อ Google Sheets</h3>
+                </div>
+                <button onclick="app.closeModal('configModal')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4 text-sm">
+                
+                <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-xs text-purple-900 space-y-2">
+                    <p class="font-bold flex items-center gap-1.5 text-sm">
+                        <i class="fa-solid fa-circle-info text-brand-purple"></i>
+                        การตั้งค่าฐานข้อมูล (ฟรี 0 บาท/เดือน)
+                    </p>
+                    <p>ระบบสามารถดึงข้อมูลได้จาก Google Sheets ที่กด <strong>"เผยแพร่ไปยังเว็บ (Publish to Web)"</strong> ในรูปแบบ CSV โดยไม่จำเป็นต้องเปิดเผยสิทธิ์แก้ไขให้ผู้อื่น</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-2">แหล่งข้อมูลที่ต้องการใช้:</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-2 border p-3 rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-brand-purple has-[:checked]:bg-purple-50/50">
+                            <input type="radio" name="dataSourceMode" value="mock" id="modeMock" onchange="app.toggleConfigModeInputs()">
+                            <span class="font-bold text-slate-800">ข้อมูลตัวอย่าง (Demo Data)</span>
+                        </label>
+                        <label class="flex items-center gap-2 border p-3 rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-brand-purple has-[:checked]:bg-purple-50/50">
+                            <input type="radio" name="dataSourceMode" value="live" id="modeLive" onchange="app.toggleConfigModeInputs()">
+                            <span class="font-bold text-slate-800">Google Sheets (Live CSV)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="liveCsvInputs" class="space-y-3 pt-2">
+                    <p class="font-bold text-slate-800">ใส่ URL ของ Published CSV แต่ละ Sheet:</p>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">1. URL สำหรับ EVENTS Sheet (CSV):</label>
+                        <input type="url" id="cfgEventsUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">2. URL สำหรับ HOLIDAYS Sheet (CSV):</label>
+                        <input type="url" id="cfgHolidaysUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">3. URL สำหรับ ANNOUNCEMENTS Sheet (CSV):</label>
+                        <input type="url" id="cfgAnnouncementsUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">4. URL สำหรับ LINKS Sheet (CSV):</label>
+                        <input type="url" id="cfgLinksUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&single=true&output=csv" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                <button onclick="app.resetConfigToDefault()" class="text-xs text-rose-600 font-bold hover:underline">
+                    คืนค่าเริ่มต้น
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="app.closeModal('configModal')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                        ยกเลิก
+                    </button>
+                    <button onclick="app.saveConfig()" class="px-5 py-2 bg-brand-purple hover:bg-brand-purple-dark text-white font-extrabold rounded-xl text-xs shadow-md">
+                        บันทึกและอัปเดตข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm transform transition-all">
+        <i id="toastIcon" class="fa-solid fa-circle-info text-brand-gold"></i>
+        <span id="toastMsg">ข้อความแจ้งเตือน</span>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        (function setupPWA() {
+            const manifestData = {
+                name: "ปฏิทินคอนโดลิฟวิ่งเนสท์",
+                short_name: "Living Nest",
+                description: "ปฏิทินกิจกรรม ประกาศ และกำหนดการของคอนโดลิฟวิ่งเนสท์",
+                start_url: "./",
+                display: "standalone",
+                background_color: "#F4F6F9",
+                theme_color: "#2D1B4E",
+                icons: [
+                    {
+                        src: "https://placehold.co/192x192/2D1B4E/FFC107?text=Living+Nest",
+                        sizes: "192x192",
+                        type: "image/png"
+                    },
+                    {
+                        src: "https://placehold.co/512x512/2D1B4E/FFC107?text=Living+Nest",
+                        sizes: "512x512",
+                        type: "image/png"
+                    }
+                ]
+            };
+            const stringManifest = JSON.stringify(manifestData);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blob));
+        })();
+
+        function generateMockData() {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            
+            const makeDate = (dayOffset) => {
+                const d = new Date(today);
+                d.setDate(today.getDate() + dayOffset);
+                return d.toISOString().split('T')[0];
+            };
+
+            return {
+                events: [
+                    {
+                        ID: "EV001",
+                        START_DATE: makeDate(0),
+                        END_DATE: makeDate(0),
+                        START_TIME: "09:00",
+                        END_TIME: "12:00",
+                        TITLE: "ตรวจสอบระบบไฟฟ้าและตู้ไฟประจำอาคาร",
+                        CATEGORY: "ตรวจสอบระบบ",
+                        DESCRIPTION: "ฝ่ายวิศวกรรมเข้าตรวจสอบตู้ควบคุมไฟฟ้าหลักประจำปี ขออภัยหากมีไฟตกชั่วคราว",
+                        LOCATION: "ห้องไฟฟ้าหลัก ชั้น B1",
+                        LINK: "https://example.com/elec-notice",
+                        STATUS: "กำลังดำเนินการ",
+                        PRIORITY: "สำคัญ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV002",
+                        START_DATE: makeDate(0),
+                        END_DATE: makeDate(0),
+                        START_TIME: "13:30",
+                        END_TIME: "16:00",
+                        TITLE: "ประชุมคณะกรรมการนิติบุคคลประจำเดือน",
+                        CATEGORY: "ประชุม",
+                        DESCRIPTION: "ประชุมวาระปรับปรุงภูมิทัศน์สวนส่วนกลาง และสรุปงบประมาณประจำไตรมาส",
+                        LOCATION: "ห้องประชุมสำนักงานนิติบุคคล ชั้น 1",
+                        LINK: "",
+                        STATUS: "กำหนดการ",
+                        PRIORITY: "ปกติ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV003",
+                        START_DATE: makeDate(2),
+                        END_DATE: makeDate(2),
+                        START_TIME: "08:30",
+                        END_TIME: "17:00",
+                        TITLE: "ล้างถังเก็บน้ำประจำปี อาคาร A และ B",
+                        CATEGORY: "งานซ่อม",
+                        DESCRIPTION: "งานล้างถังน้ำสะอาดยอดอาคาร กรุณาสำรองน้ำไว้อุปโภคบริโภคล่วงหน้าช่วงเวลาดังกล่าว",
+                        LOCATION: "ดาดฟ้า อาคาร A และ B",
+                        LINK: "https://example.com/water-tank",
+                        STATUS: "กำหนดการ",
+                        PRIORITY: "สำคัญ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV004",
+                        START_DATE: makeDate(5),
+                        END_DATE: makeDate(7),
+                        START_TIME: "09:00",
+                        END_TIME: "16:30",
+                        TITLE: "งานทาสีและปรับปรุงพื้นที่คลับเฮาส์",
+                        CATEGORY: "งานซ่อม",
+                        DESCRIPTION: "ปิดปรับปรุงและทาสีผนังบริเวณฟิตเนสและห้องโถงสระว่ายน้ำ",
+                        LOCATION: "พื้นที่ส่วนกลาง ชั้น 5",
+                        LINK: "",
+                        STATUS: "กำหนดการ",
+                        PRIORITY: "ปกติ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV005",
+                        START_DATE: makeDate(10),
+                        END_DATE: makeDate(10),
+                        START_TIME: "10:00",
+                        END_TIME: "15:00",
+                        TITLE: "ฉีดพ่นกำจัดแมลงและปลวกในห้องชุดพักอาศัย",
+                        CATEGORY: "งานซ่อม",
+                        DESCRIPTION: "บริการฉีดพ่นกำจัดปลวกฟรีตามรอบ สำหรับลูกบ้านที่ลงทะเบียนไว้กับนิติบุคคล",
+                        LOCATION: "ห้องชุดลูกบ้านที่ลงชื่อไว้",
+                        LINK: "https://example.com/pest-form",
+                        STATUS: "กำหนดการ",
+                        PRIORITY: "ปกติ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV006",
+                        START_DATE: makeDate(15),
+                        END_DATE: makeDate(15),
+                        START_TIME: "",
+                        END_TIME: "",
+                        TITLE: "วันครบกำหนดชำระค่าส่วนกลางประจำไตรมาส",
+                        CATEGORY: "กำหนดชำระ",
+                        DESCRIPTION: "โปรดชำระภายในวันที่กำหนดเพื่อเว้นค่าปรับชำระล่าช้า สามารถโอนผ่าน QR Code นิติบุคคล",
+                        LOCATION: "สำนักงานนิติบุคคล / แอปธนาคาร",
+                        LINK: "",
+                        STATUS: "กำหนดการ",
+                        PRIORITY: "สำคัญ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "EV007",
+                        START_DATE: makeDate(-3),
+                        END_DATE: makeDate(-3),
+                        START_TIME: "10:00",
+                        END_TIME: "12:00",
+                        TITLE: "การทดสอบระบบลิฟต์โดยสารประจำเดือน",
+                        CATEGORY: "ตรวจสอบระบบ",
+                        DESCRIPTION: "บริษัทผู้ดูแลลิฟต์เข้าตรวจเช็คความปลอดภัยตามรอบประจำเดือน",
+                        LOCATION: "ลิฟต์โดยสาร โถง A และ B",
+                        LINK: "",
+                        STATUS: "เสร็จสิ้น",
+                        PRIORITY: "ปกติ",
+                        ACTIVE: "TRUE"
+                    }
+                ],
+                holidays: [
+                    {
+                        DATE: `${y}-${m}-23`,
+                        TITLE: "วันปิยมหาราช",
+                        TYPE: "วันหยุดราชการ",
+                        DESCRIPTION: "วันคล้ายวันสวรรคตพระบาทสมเด็จพระจุลจอมเกล้าเจ้าอยู่หัว",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        DATE: `${y}-12-05`,
+                        TITLE: "วันพ่อแห่งชาติ / วันชาติ",
+                        TYPE: "วันหยุดราชการ",
+                        DESCRIPTION: "วันคล้ายวันพระบรมราชสมภพ พระบาทสมเด็จพระบรมชนกาธิเบศร มหาภูมิพลอดุลยเดชมหาราช บรมนาถบพิตร",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        DATE: `${y}-12-31`,
+                        TITLE: "วันสิ้นปี",
+                        TYPE: "วันหยุดประจำปี",
+                        DESCRIPTION: "วันหยุดส่งท้ายปีเก่า",
+                        ACTIVE: "TRUE"
+                    }
+                ],
+                announcements: [
+                    {
+                        ID: "AN001",
+                        DATE: makeDate(-1),
+                        TITLE: "ขอความร่วมมือไม่จอดรถซ้อนคันบริเวณทางโค้งขึ้นอาคารจอดรถ",
+                        DESCRIPTION: "เพื่อความปลอดภัยในการขับขี่และลดอุบัติเหตุ นิติบุคคลขอความร่วมมือลูกบ้านจอดรถเฉพาะในช่องจอดที่กำหนดไว้เท่านั้น",
+                        LINK: "",
+                        PRIORITY: "สำคัญ",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "AN002",
+                        DATE: makeDate(-6),
+                        TITLE: "มาตรการแยกขยะและคัดแยกขยะรีไซเคิลของคอนโด",
+                        DESCRIPTION: "กรุณาทิ้งขยะลงในถังตามประเภทที่จัดไว้ ณ ห้องทิ้งขยะประจำชั้น เพื่อสุขอนามัยที่ดีของส่วนกลาง",
+                        LINK: "https://example.com/recycle-rules",
+                        PRIORITY: "ปกติ",
+                        ACTIVE: "TRUE"
+                    }
+                ],
+                links: [
+                    {
+                        ID: "LK001",
+                        TITLE: "LINE Official นิติบุคคล",
+                        URL: "https://line.me",
+                        CATEGORY: "ติดต่อ",
+                        DESCRIPTION: "สอบถาม แจ้งปัญหา และรับข่าวสารด่วน",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "LK002",
+                        TITLE: "แบบฟอร์มแจ้งซ่อมส่วนตัว/ส่วนกลาง",
+                        URL: "https://forms.google.com",
+                        CATEGORY: "บริการ",
+                        DESCRIPTION: "ลงทะเบียนแจ้งซ่อมอุปกรณ์ในห้องพักหรือพื้นที่ส่วนกลาง",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "LK003",
+                        TITLE: "เบอร์โทรสำนักงานนิติบุคคล",
+                        URL: "tel:021234567",
+                        CATEGORY: "ติดต่อ",
+                        DESCRIPTION: "โทร: 02-123-4567 (เวลาทำการ 08:30 - 17:30 น.)",
+                        ACTIVE: "TRUE"
+                    },
+                    {
+                        ID: "LK004",
+                        TITLE: "ระเบียบการพักอาศัยและส่วนกลาง",
+                        URL: "https://example.com/rules.pdf",
+                        CATEGORY: "เอกสาร",
+                        DESCRIPTION: "คู่มือและข้อบังคับเจ้าของร่วม คอนโดลิฟวิ่งเนสท์",
+                        ACTIVE: "TRUE"
+                    }
+                ]
+            };
+        }
+
+        function parseCSV(text) {
+            const lines = [];
+            let row = [""];
+            let inQuotes = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                let nextC = text[i+1];
+
+                if (c === '"') {
+                    if (inQuotes && nextC === '"') {
+                        row[row.length - 1] += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (c === ',' && !inQuotes) {
+                    row.push('');
+                } else if ((c === '\r' || c === '\n') && !inQuotes) {
+                    if (c === '\r' && nextC === '\n') { i++; }
+                    lines.push(row);
+                    row = [''];
+                } else {
+                    row[row.length - 1] += c;
+                }
+            }
+            if (row.length > 1 || row[0] !== '') lines.push(row);
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].map(h => h.trim().toUpperCase());
+            return lines.slice(1).filter(l => l.some(cell => cell.trim() !== '')).map(line => {
+                let obj = {};
+                headers.forEach((h, idx) => {
+                    obj[h] = line[idx] ? line[idx].trim() : '';
+                });
+                return obj;
+            });
+        }
+
+        class LivingNestCalendarApp {
+            constructor() {
+                this.currentViewDate = new Date();
+                this.selectedCategory = 'ทั้งหมด';
+                this.searchQuery = '';
+                
+                this.config = {
+                    mode: 'mock',
+                    urls: { events: '', holidays: '', announcements: '', links: '' },
+                    refreshMinutes: 15
+                };
+
+                this.data = { events: [], holidays: [], announcements: [], links: [] };
+
+                this.categories = [
+                    'ทั้งหมด', 'ประชุม', 'งานซ่อม', 'ตรวจสอบระบบ', 
+                    'กิจกรรม', 'ประกาศ', 'วันหยุด', 'กำหนดชำระ', 'อื่น ๆ'
+                ];
+
+                this.thaiMonthsFull = [
+                    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+                ];
+                
+                this.thaiMonthsShort = [
+                    'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+                    'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+                ];
+            }
+
+            init() {
+                this.loadConfigFromStorage();
+                this.renderCategoryChips();
+                this.refreshData();
+
+                setInterval(() => {
+                    this.refreshData(true);
+                }, this.config.refreshMinutes * 60 * 1000);
+            }
+
+            loadConfigFromStorage() {
+                const savedCfg = localStorage.getItem('lnest_config');
+                if (savedCfg) {
+                    try { this.config = JSON.parse(savedCfg); } catch (e) {}
+                }
+            }
+
+            saveConfig() {
+                const modeVal = document.querySelector('input[name="dataSourceMode"]:checked').value;
+                this.config.mode = modeVal;
+                this.config.urls.events = document.getElementById('cfgEventsUrl').value.trim();
+                this.config.urls.holidays = document.getElementById('cfgHolidaysUrl').value.trim();
+                this.config.urls.announcements = document.getElementById('cfgAnnouncementsUrl').value.trim();
+                this.config.urls.links = document.getElementById('cfgLinksUrl').value.trim();
+
+                localStorage.setItem('lnest_config', JSON.stringify(this.config));
+                this.closeModal('configModal');
+                this.showToast('บันทึกการตั้งค่าแล้ว กำลังอัปเดตข้อมูล...', 'success');
+                this.refreshData();
+            }
+
+            openConfigModal() {
+                document.getElementById('modeMock').checked = (this.config.mode === 'mock');
+                document.getElementById('modeLive').checked = (this.config.mode === 'live');
+                document.getElementById('cfgEventsUrl').value = this.config.urls.events || '';
+                document.getElementById('cfgHolidaysUrl').value = this.config.urls.holidays || '';
+                document.getElementById('cfgAnnouncementsUrl').value = this.config.urls.announcements || '';
+                document.getElementById('cfgLinksUrl').value = this.config.urls.links || '';
+
+                this.toggleConfigModeInputs();
+                document.getElementById('configModal').classList.remove('hidden');
+            }
+
+            toggleConfigModeInputs() {
+                const isLive = document.getElementById('modeLive').checked;
+                const liveContainer = document.getElementById('liveCsvInputs');
+                if (isLive) {
+                    liveContainer.classList.remove('opacity-40', 'pointer-events-none');
+                } else {
+                    liveContainer.classList.add('opacity-40', 'pointer-events-none');
+                }
+            }
+
+            resetConfigToDefault() {
+                this.config = { mode: 'mock', urls: { events: '', holidays: '', announcements: '', links: '' }, refreshMinutes: 15 };
+                localStorage.removeItem('lnest_config');
+                this.openConfigModal();
+                this.showToast('คืนค่าเริ่มต้นเรียบร้อย', 'info');
+            }
+
+            async refreshData(silent = false) {
+                const spinner = document.getElementById('refreshSpinner');
+                if (spinner) spinner.classList.add('fa-spin');
+
+                let isError = false;
+
+                if (this.config.mode === 'mock') {
+                    this.data = generateMockData();
+                    this.cacheDataLocally(this.data);
+                } else {
+                    try {
+                        const fetchedData = await this.fetchLiveCsvData();
+                        if (fetchedData) {
+                            this.data = fetchedData;
+                            this.cacheDataLocally(this.data);
+                        } else {
+                            throw new Error("CSV Fetch failed");
+                        }
+                    } catch (err) {
+                        isError = true;
+                        const cached = localStorage.getItem('lnest_cached_data');
+                        if (cached) {
+                            this.data = JSON.parse(cached);
+                        } else {
+                            this.data = generateMockData();
+                        }
+                    }
+                }
+
+                const offlineBanner = document.getElementById('offlineBanner');
+                if (isError) {
+                    offlineBanner.classList.remove('hidden');
+                } else {
+                    offlineBanner.classList.add('hidden');
+                }
+
+                const now = new Date();
+                const timeStr = `${now.getDate()} ${this.thaiMonthsShort[now.getMonth()]} ${now.getFullYear() + 543} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} น.`;
+                document.getElementById('lastUpdatedText').innerText = `อัปเดตล่าสุด: ${timeStr}`;
+
+                if (spinner) spinner.classList.remove('fa-spin');
+                this.renderAllComponents();
+                if (!silent) this.showToast('อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
+            }
+
+            async fetchLiveCsvData() {
+                const result = { events: [], holidays: [], announcements: [], links: [] };
+
+                const fetchSheet = async (url) => {
+                    if (!url) return [];
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const csvText = await res.text();
+                    return parseCSV(csvText);
+                };
+
+                const [evs, hols, anns, lnks] = await Promise.all([
+                    fetchSheet(this.config.urls.events).catch(() => []),
+                    fetchSheet(this.config.urls.holidays).catch(() => []),
+                    fetchSheet(this.config.urls.announcements).catch(() => []),
+                    fetchSheet(this.config.urls.links).catch(() => [])
+                ]);
+
+                result.events = evs.filter(e => e.ACTIVE !== 'FALSE');
+                result.holidays = hols.filter(h => h.ACTIVE !== 'FALSE');
+                result.announcements = anns.filter(a => a.ACTIVE !== 'FALSE');
+                result.links = lnks.filter(l => l.ACTIVE !== 'FALSE');
+
+                return result;
+            }
+
+            cacheDataLocally(data) {
+                try { localStorage.setItem('lnest_cached_data', JSON.stringify(data)); } catch(e) {}
+            }
+
+            renderAllComponents() {
+                this.renderDashboard();
+                this.renderTodayPanel();
+                this.renderCalendar();
+                this.renderEventList();
+                this.renderAnnouncements();
+                this.renderLinks();
+            }
+
+            renderDashboard() {
+                const today = new Date();
+                const todayStr = this.formatDateIso(today);
+                
+                document.getElementById('dashTodayDate').innerText = 
+                    `${today.getDate()} ${this.thaiMonthsShort[today.getMonth()]} ${today.getFullYear() + 543}`;
+
+                const todayEvents = this.getEventsForDateStr(todayStr);
+                document.getElementById('dashTodayCount').innerText = `${todayEvents.length} รายการ`;
+
+                const currentY = this.currentViewDate.getFullYear();
+                const currentM = this.currentViewDate.getMonth();
+                
+                const monthEvents = this.data.events.filter(e => {
+                    if (!e.START_DATE) return false;
+                    const d = new Date(e.START_DATE);
+                    return d.getFullYear() === currentY && d.getMonth() === currentM;
+                });
+                document.getElementById('dashMonthEventCount').innerText = `${monthEvents.length} รายการ`;
+
+                const monthHols = this.data.holidays.filter(h => {
+                    if (!h.DATE) return false;
+                    const d = new Date(h.DATE);
+                    return d.getFullYear() === currentY && d.getMonth() === currentM;
+                });
+                document.getElementById('dashMonthHolidayCount').innerText = `${monthHols.length} วัน`;
+            }
+
+            renderTodayPanel() {
+                const today = new Date();
+                const todayStr = this.formatDateIso(today);
+                const todayEvents = this.getEventsForDateStr(todayStr);
+                const container = document.getElementById('todayPanelList');
+                
+                document.getElementById('todayPanelDateLabel').innerText = 
+                    `(${today.getDate()} ${this.thaiMonthsFull[today.getMonth()]} ${today.getFullYear() + 543})`;
+
+                if (todayEvents.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white/70 rounded-xl p-3 text-center text-xs text-slate-500 flex items-center justify-center gap-2 border border-slate-200/60">
+                            <i class="fa-regular fa-circle-check text-emerald-600"></i>
+                            <span>วันนี้ไม่มีกำหนดการหรือกิจกรรมพิเศษ</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = todayEvents.slice(0, 3).map(ev => `
+                    <div onclick="app.openDateModal('${todayStr}')" class="bg-white p-3 rounded-xl border border-amber-200/80 shadow-sm hover:shadow transition cursor-pointer flex items-start gap-2.5">
+                        <div class="w-2 h-10 rounded-full ${this.getCategoryColorClass(ev.CATEGORY)} flex-shrink-0"></div>
+                        <div class="min-w-0 flex-grow">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${this.getCategoryBadgeStyle(ev.CATEGORY)} truncate">${ev.CATEGORY || 'ทั่วไป'}</span>
+                                ${ev.START_TIME ? `<span class="text-[11px] font-semibold text-slate-600"><i class="fa-regular fa-clock text-[10px] mr-1"></i>${ev.START_TIME} น.</span>` : ''}
+                            </div>
+                            <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${ev.TITLE}</h4>
+                            <p class="text-[11px] text-slate-500 truncate"><i class="fa-solid fa-location-dot text-[10px] mr-1"></i>${ev.LOCATION || 'คอนโดลิฟวิ่งเนสท์'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderCalendar() {
+                const year = this.currentViewDate.getFullYear();
+                const month = this.currentViewDate.getMonth();
+                
+                document.getElementById('calendarMonthYear').innerHTML = `
+                    <span>${this.thaiMonthsFull[month]} ${year + 543}</span>
+                    <span class="text-xs font-normal text-slate-400">(${year})</span>
+                `;
+
+                const calendarGrid = document.getElementById('calendarGrid');
+                calendarGrid.innerHTML = '';
+
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const totalDays = new Date(year, month + 1, 0).getDate();
+                const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+                const todayStr = this.formatDateIso(new Date());
+
+                for (let i = firstDayIndex - 1; i >= 0; i--) {
+                    const dayNum = prevMonthTotalDays - i;
+                    calendarGrid.innerHTML += `
+                        <div class="day-cell bg-slate-50/50 text-slate-300 p-1 rounded-xl text-xs text-left border border-transparent">
+                            <span class="font-medium">${dayNum}</span>
+                        </div>
+                    `;
+                }
+
+                for (let d = 1; d <= totalDays; d++) {
+                    const currentLoopDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const isToday = (currentLoopDateStr === todayStr);
+
+                    const dayEvents = this.getEventsForDateStr(currentLoopDateStr);
+                    const dayHoliday = this.data.holidays.find(h => h.DATE === currentLoopDateStr);
+
+                    let cellStyle = "bg-white border-slate-100 hover:border-brand-purple hover:shadow-sm";
+                    let dateNumStyle = "text-slate-700 font-semibold";
+
+                    if (isToday) {
+                        cellStyle = "bg-brand-purple text-white ring-2 ring-brand-gold gold-glow shadow-md";
+                        dateNumStyle = "text-white font-black";
+                    } else if (dayHoliday) {
+                        cellStyle = "bg-rose-50 border-rose-200 text-rose-900";
+                        dateNumStyle = "text-rose-700 font-extrabold";
+                    }
+
+                    let indicators = '';
+                    if (dayHoliday && !isToday) {
+                        indicators += `<span class="bg-rose-500 text-white text-[9px] font-extrabold px-1 rounded truncate block mt-1" title="${dayHoliday.TITLE}">วันหยุด</span>`;
+                    }
+
+                    if (dayEvents.length > 0) {
+                        const dotColor = isToday ? 'bg-brand-gold' : 'bg-amber-500';
+                        if (dayEvents.length <= 2) {
+                            indicators += `
+                                <div class="flex items-center justify-center gap-1 mt-1">
+                                    ${dayEvents.map(() => `<span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>`).join('')}
+                                </div>
+                            `;
+                        } else {
+                            indicators += `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 rounded block mt-1 truncate">${dayEvents.length} รายการ</span>`;
+                        }
+                    }
+
+                    calendarGrid.innerHTML += `
+                        <div onclick="app.openDateModal('${currentLoopDateStr}')" class="day-cell ${cellStyle} p-1 sm:p-1.5 rounded-xl text-xs flex flex-col justify-between border cursor-pointer transition active:scale-95">
+                            <div class="flex items-center justify-between">
+                                <span class="${dateNumStyle} text-xs sm:text-sm">${d}</span>
+                                ${isToday ? '<i class="fa-solid fa-crown text-[9px] text-brand-gold"></i>' : ''}
+                            </div>
+                            <div class="min-w-0">
+                                ${indicators}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            renderCategoryChips() {
+                const container = document.getElementById('categoryChips');
+                container.innerHTML = this.categories.map(cat => {
+                    const active = (this.selectedCategory === cat);
+                    const btnClass = active 
+                        ? 'bg-brand-purple text-white font-extrabold shadow-sm' 
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium';
+                    return `
+                        <button onclick="app.setCategory('${cat}')" class="px-3 py-1.5 rounded-xl whitespace-nowrap transition text-xs ${btnClass}">
+                            ${cat}
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            renderEventList() {
+                const container = document.getElementById('eventListContainer');
+                let filtered = [...this.data.events];
+
+                if (this.selectedCategory !== 'ทั้งหมด') {
+                    if (this.selectedCategory !== 'วันหยุด') {
+                        filtered = filtered.filter(e => e.CATEGORY === this.selectedCategory);
+                    }
+                }
+
+                if (this.searchQuery.trim() !== '') {
+                    const q = this.searchQuery.toLowerCase();
+                    filtered = filtered.filter(e => 
+                        (e.TITLE && e.TITLE.toLowerCase().includes(q)) ||
+                        (e.DESCRIPTION && e.DESCRIPTION.toLowerCase().includes(q)) ||
+                        (e.LOCATION && e.LOCATION.toLowerCase().includes(q)) ||
+                        (e.CATEGORY && e.CATEGORY.toLowerCase().includes(q))
+                    );
+                }
+
+                filtered.sort((a, b) => new Date(a.START_DATE) - new Date(b.START_DATE));
+
+                document.getElementById('eventCountBadge').innerText = filtered.length;
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
+                            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-xl">
+                                <i class="fa-solid fa-calendar-xmark"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-600">ไม่พบข้อมูลกิจกรรมหรือกำหนดการ</p>
+                            <p class="text-xs text-slate-400">ลองเปลี่ยนคำค้นหา หรือเลือกหมวดหมู่อื่น</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filtered.map(ev => {
+                    const dateFormatted = this.formatDateRange(ev.START_DATE, ev.END_DATE);
+                    const priorityBadge = this.getPriorityBadge(ev.PRIORITY, ev.STATUS);
+
+                    return `
+                        <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-md transition space-y-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold px-2.5 py-1 rounded-lg ${this.getCategoryBadgeStyle(ev.CATEGORY)}">
+                                    ${ev.CATEGORY || 'ทั่วไป'}
+                                </span>
+                                ${priorityBadge}
+                            </div>
+
+                            <h4 class="text-base font-extrabold text-slate-900 leading-snug">${ev.TITLE}</h4>
+
+                            ${ev.DESCRIPTION ? `<p class="text-xs text-slate-600 leading-relaxed">${ev.DESCRIPTION}</p>` : ''}
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-regular fa-calendar text-brand-purple"></i>
+                                    <span>${dateFormatted}</span>
+                                </div>
+                                ${ev.START_TIME ? `
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-regular fa-clock text-amber-600"></i>
+                                        <span>${ev.START_TIME} ${ev.END_TIME ? `- ${ev.END_TIME}` : ''} น.</span>
+                                    </div>
+                                ` : ''}
+                                <div class="flex items-center gap-2 sm:col-span-2">
+                                    <i class="fa-solid fa-location-dot text-rose-500"></i>
+                                    <span>${ev.LOCATION || 'คอนโดลิฟวิ่งเนสท์'}</span>
+                                </div>
+                            </div>
+
+                            ${ev.LINK ? `
+                                <div class="pt-2">
+                                    <a href="${ev.LINK}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-xs font-bold text-brand-purple bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-xl border border-purple-200 transition">
+                                        <span>เปิดเอกสาร / ดูรายละเอียดเพิ่มเติม</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    </a>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            renderAnnouncements() {
+                const container = document.getElementById('announcementsContainer');
+                if (!this.data.announcements || this.data.announcements.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-400 col-span-full">ไม่มีประกาศใหม่ในขณะนี้</p>`;
+                    return;
+                }
+
+                container.innerHTML = this.data.announcements.map(ann => `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 relative overflow-hidden">
+                        ${ann.PRIORITY === 'สำคัญ' ? '<div class="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-bl"></div>' : ''}
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                            <span class="font-bold text-brand-purple"><i class="fa-solid fa-thumbtack text-brand-gold mr-1"></i>ประกาศ</span>
+                            <span>${ann.DATE || ''}</span>
+                        </div>
+                        <h4 class="font-extrabold text-sm text-slate-900">${ann.TITLE}</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">${ann.DESCRIPTION}</p>
+                        ${ann.LINK ? `
+                            <a href="${ann.LINK}" target="_blank" class="inline-block text-xs font-bold text-brand-purple underline pt-1">อ่านประกาศฉบับเต็ม</a>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+
+            renderLinks() {
+                const container = document.getElementById('linksContainer');
+                if (!this.data.links || this.data.links.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-400 col-span-full">ไม่มีลิงก์สำคัญ</p>`;
+                    return;
+                }
+
+                container.innerHTML = this.data.links.map(lk => `
+                    <a href="${lk.URL}" target="_blank" rel="noopener" class="bg-white/10 hover:bg-white/20 border border-white/15 p-3 rounded-xl transition flex flex-col justify-between group">
+                        <div>
+                            <span class="text-[10px] font-bold text-brand-gold uppercase tracking-wider">${lk.CATEGORY || 'ลิงก์'}</span>
+                            <h4 class="font-bold text-xs text-white group-hover:text-brand-gold transition mt-1">${lk.TITLE}</h4>
+                            <p class="text-[11px] text-slate-300 mt-1 line-clamp-2">${lk.DESCRIPTION}</p>
+                        </div>
+                        <div class="text-right mt-2">
+                            <i class="fa-solid fa-chevron-right text-xs text-brand-gold group-hover:translate-x-1 transition-transform inline-block"></i>
+                        </div>
+                    </a>
+                `).join('');
+            }
+
+            openDateModal(dateStr) {
+                const d = new Date(dateStr);
+                const titleStr = `${d.getDate()} ${this.thaiMonthsFull[d.getMonth()]} ${d.getFullYear() + 543}`;
+                document.getElementById('modalDateTitle').innerText = titleStr;
+
+                const events = this.getEventsForDateStr(dateStr);
+                const holiday = this.data.holidays.find(h => h.DATE === dateStr);
+                const container = document.getElementById('modalDateEventList');
+
+                let html = '';
+
+                if (holiday) {
+                    html += `
+                        <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                <i class="fa-solid fa-umbrella-beach"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">วันหยุดประจำปี</span>
+                                <h4 class="font-bold text-slate-900 text-sm mt-1">${holiday.TITLE}</h4>
+                                ${holiday.DESCRIPTION ? `<p class="text-xs text-slate-600 mt-1">${holiday.DESCRIPTION}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (events.length === 0 && !holiday) {
+                    html += `
+                        <div class="py-8 text-center text-slate-500 space-y-2">
+                            <i class="fa-regular fa-calendar-minus text-3xl text-slate-300"></i>
+                            <p class="text-sm font-semibold">วันนี้ไม่มีรายการกิจกรรมหรือกำหนดการ</p>
+                        </div>
+                    `;
+                } else {
+                    html += events.map(ev => `
+                        <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-lg ${this.getCategoryBadgeStyle(ev.CATEGORY)}">
+                                    ${ev.CATEGORY || 'ทั่วไป'}
+                                </span>
+                                ${ev.START_TIME ? `<span class="text-xs text-slate-600 font-semibold"><i class="fa-regular fa-clock mr-1"></i>${ev.START_TIME} น.</span>` : ''}
+                            </div>
+                            <h4 class="font-extrabold text-sm text-slate-900">${ev.TITLE}</h4>
+                            ${ev.DESCRIPTION ? `<p class="text-xs text-slate-600">${ev.DESCRIPTION}</p>` : ''}
+                            <div class="text-xs text-slate-500 pt-1 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot text-rose-500"></i>
+                                <span>${ev.LOCATION || 'คอนโดลิฟวิ่งเนสท์'}</span>
+                            </div>
+                            ${ev.LINK ? `
+                                <a href="${ev.LINK}" target="_blank" class="inline-block text-xs font-bold text-brand-purple underline pt-1">เปิดดูเอกสารเพิ่มเติม</a>
+                            ` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                container.innerHTML = html;
+                document.getElementById('dateModal').classList.remove('hidden');
+            }
+
+            showTodayEventsModal() {
+                const todayStr = this.formatDateIso(new Date());
+                this.openDateModal(todayStr);
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.add('hidden');
+            }
+
+            getEventsForDateStr(dateStr) {
+                const target = new Date(dateStr);
+                return this.data.events.filter(e => {
+                    if (!e.START_DATE) return false;
+                    const start = new Date(e.START_DATE);
+                    const end = e.END_DATE ? new Date(e.END_DATE) : start;
+                    return target >= start && target <= end;
+                });
+            }
+
+            formatDateIso(d) {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            formatDateRange(startStr, endStr) {
+                if (!startStr) return '';
+                const d1 = new Date(startStr);
+                const startFormatted = `${d1.getDate()} ${this.thaiMonthsShort[d1.getMonth()]} ${d1.getFullYear() + 543}`;
+                
+                if (!endStr || startStr === endStr) return startFormatted;
+                const d2 = new Date(endStr);
+                const endFormatted = `${d2.getDate()} ${this.thaiMonthsShort[d2.getMonth()]} ${d2.getFullYear() + 543}`;
+                return `${startFormatted} – ${endFormatted}`;
+            }
+
+            getCategoryColorClass(cat) {
+                switch(cat) {
+                    case 'ประชุม': return 'bg-purple-600';
+                    case 'งานซ่อม': return 'bg-amber-500';
+                    case 'ตรวจสอบระบบ': return 'bg-blue-600';
+                    case 'กำหนดชำระ': return 'bg-rose-600';
+                    case 'กิจกรรม': return 'bg-emerald-600';
+                    default: return 'bg-slate-500';
+                }
+            }
+
+            getCategoryBadgeStyle(cat) {
+                switch(cat) {
+                    case 'ประชุม': return 'bg-purple-100 text-purple-800';
+                    case 'งานซ่อม': return 'bg-amber-100 text-amber-800';
+                    case 'ตรวจสอบระบบ': return 'bg-blue-100 text-blue-800';
+                    case 'กำหนดชำระ': return 'bg-rose-100 text-rose-800';
+                    case 'กิจกรรม': return 'bg-emerald-100 text-emerald-800';
+                    default: return 'bg-slate-100 text-slate-800';
+                }
+            }
+
+            getPriorityBadge(priority, status) {
+                if (priority === 'สำคัญ') {
+                    return `<span class="bg-rose-100 text-rose-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-rose-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>สำคัญ</span>`;
+                }
+                if (status === 'กำลังดำเนินการ') {
+                    return `<span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full">กำลังดำเนินการ</span>`;
+                }
+                if (status === 'เสร็จสิ้น') {
+                    return `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">เสร็จสิ้น</span>`;
+                }
+                return `<span class="bg-slate-100 text-slate-700 text-[11px] font-medium px-2 py-0.5 rounded-full">กำหนดการ</span>`;
+            }
+
+            changeMonth(delta) {
+                this.currentViewDate.setMonth(this.currentViewDate.getMonth() + delta);
+                this.renderDashboard();
+                this.renderCalendar();
+            }
+
+            goToToday() {
+                this.currentViewDate = new Date();
+                this.renderDashboard();
+                this.renderCalendar();
+            }
+
+            setCategory(cat) {
+                this.selectedCategory = cat;
+                this.renderCategoryChips();
+                this.renderEventList();
+            }
+
+            handleSearch(val) {
+                this.searchQuery = val;
+                const clearBtn = document.getElementById('clearSearchBtn');
+                if (val.trim().length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+                this.renderEventList();
+            }
+
+            clearSearch() {
+                document.getElementById('searchInput').value = '';
+                this.handleSearch('');
+            }
+
+            showToast(msg, type = 'info') {
+                const toast = document.getElementById('toast');
+                const toastMsg = document.getElementById('toastMsg');
+                const toastIcon = document.getElementById('toastIcon');
+
+                toastMsg.innerText = msg;
+                if (type === 'success') {
+                    toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+                } else {
+                    toastIcon.className = 'fa-solid fa-circle-info text-brand-gold';
+                }
+
+                toast.classList.remove('hidden');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        const app = new LivingNestCalendarApp();
+        window.onload = function() {
+            app.init();
+        };
+    </script>
+</body>
+</html>
